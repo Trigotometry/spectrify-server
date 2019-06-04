@@ -18,18 +18,24 @@ require "sprockets/railtie"
 Bundler.require(*Rails.groups)
 
 module Spectrify
-  class Application < Rails::Application
-    # Initialize configuration defaults for originally generated Rails version.
-    config.load_defaults 5.2
+	class Application < Rails::Application
+		# Initialize configuration defaults for originally generated Rails version.
+		config.load_defaults 5.2
 
-    # Settings in config/environments/* take precedence over those specified here.
-    # Application configuration can go into files in config/initializers
-    # -- all .rb files in that directory are automatically loaded after loading
-    # the framework and any gems in your application.
+		# Settings in config/environments/* take precedence over those specified here.
+		# Application configuration can go into files in config/initializers
+		# -- all .rb files in that directory are automatically loaded after loading
+		# the framework and any gems in your application.
 
-    # Don't generate system test files.
-    config.generators.system_tests = nil
-  end
+		# setup of CORS
+		config.middleware.insert_before 0, Rack::Cors do
+			allow do
+				origins '*'
+				resource '*', headers: :any, methods: [:get, :post, :options]
+			end
+		end
+
+		# Don't generate system test files.
+		config.generators.system_tests = nil
+	end
 end
-
-# RSpotify::authenticate( Rails.application.secrets.spectrify_client_id, Rails.application.secrets.spectrify_client_secret )
