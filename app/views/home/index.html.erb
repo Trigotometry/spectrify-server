@@ -1,0 +1,12 @@
+<h1>Spotify Demo</h1>
+
+<%= form_tag artists_path, method: "get" do %>
+	<div class="form-group">
+		<%= text_field_tag( :artist_name, "", placeholder: "Enter artist name", class: "form-control" ) %>
+	</div>
+	<%= submit_tag "Search" %>
+<% end %>
+
+<h1>
+<%= Rails.application.secrets.spectrify_client_id %>
+</h1>
