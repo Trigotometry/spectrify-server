@@ -1,7 +1,11 @@
 <div class="container">
 	<div class="row text-center mt-5">
 		<div class="col">
-			<h3>Click login.</h3>
+			<% unless @current_user.present? %>
+				<h3>Not logged into Spectrify.</h3>
+				<% else %>
+				<h4>Weclome, <%= @current_user.display_name.present? ? @current_user.display_name : @current_user.email %>.</h4>
+			<% end %>
 		</div>
 	</div>
 </div>
