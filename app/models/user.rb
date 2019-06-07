@@ -21,5 +21,13 @@
 #
 
 class User < ApplicationRecord
-	validates :email, :uniqueness => true
+	
+	validates :email, :uniqueness => true, :presence => true
+
+	def access_token_expired?
+		puts "\n\n**********\nTIME CHECK METHOD FROM MODEL FIRED\n**********\n\n"
+		# return true if access_token is older than 55 mins, based on updated_at
+		( Time.now - self.updated_at ) > 3300
+	end
+
 end
