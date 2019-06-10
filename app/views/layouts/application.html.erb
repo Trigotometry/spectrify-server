@@ -7,9 +7,10 @@
 
 		<%= stylesheet_link_tag	'application', media: 'all' %>
 		<%= javascript_include_tag 'application' %>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.8.0/p5.js"></script>
 	</head>
 
-	<body>
+	<body class="<%= controller_name %> <%= action_name %>">
 		<nav class="navbar navbar-expand-lg navbar-light bg-light">
 			<div class="container">
 				<a class="navbar-brand" href="/">Spectrify</a>

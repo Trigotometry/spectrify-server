@@ -14,4 +14,5 @@
 //= require jquery
 //= require popper
 //= require bootstrap
+//= require jquery-readyselector
 //= require_tree .
