@@ -9,7 +9,11 @@ class UserController < ApplicationController
 			client_id: Rails.application.secrets.SPECTRIFY_CLIENT_ID,
 			response_type: "code",
 			redirect_uri: Rails.application.secrets.SPECTRIFY_REDIRECT_URI,
-			scope: "user-read-private user-read-email user-read-currently-playing user-read-playback-state streaming user-read-birthdate",
+			# for some messed up reason, to read the playback state without and errors,
+			# I need to require acces to a user's private info and their birthdate..? wtf spotify...
+			# all I want is the email
+			# removed scopes "user-read-currently-playing user-read-playback-state"
+			scope: "user-read-private user-read-email user-read-birthdate streaming",
 			show_dialog: true
 		}
 		# redirects user's browser to Spotify's authorisation page
@@ -40,7 +44,7 @@ class UserController < ApplicationController
 						redirect_uri: Rails.application.secrets.SPECTRIFY_REDIRECT_URI
 					}
 				)
-			user_access_token = 	spotify_authorisation_response["access_token"]
+			user_access_token = spotify_authorisation_response["access_token"]
 
 			# fetch spotify user info, with the access_token from spotify_authorisation_response
 			spotify_user_info_response =

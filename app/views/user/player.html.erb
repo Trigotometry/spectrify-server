@@ -1,72 +1,109 @@
+<div class="playerPage" style="display: none"></div>
+
 <!-- Spotify CDN Setup -->
 <script src="https://sdk.scdn.co/spotify-player.js"></script>
 <!-- Spotify Connect Creation -->
- <script>
-	 let player;
-	window.onSpotifyWebPlaybackSDKReady = () => {
-		const token = '<%= @current_user.access_token %>';
+<script>
+let player;
+let token = '<%= @current_user.access_token %>';
+let songInfoUrl = "https://api.spotify.com/v1/audio-features/";
+let songAudioAnalysis = "https://api.spotify.com/v1/audio-analysis/";
+let songTempo;
+let songId;
 
-		player = new Spotify.Player( {
-			name: 'Spectrify',
-			getOAuthToken: callback => { callback( token ); }
-		} );
+let bars;
+let beats;
+let segments;
 
-		// Error handling
-		player.addListener( 'initialization_error', ( { message } ) => { console.error( message ); } );
-		player.addListener( 'authentication_error', ( { message } ) => { console.error( message ); } );
-		player.addListener( 'account_error', ( { message } ) => { console.error( message ); } );
-		player.addListener( 'playback_error', ( { message } ) => { console.error( message ); } );
+let currentSongId;
+let previousSongId;
 
-		// Playback status updates
-		player.addListener( 'player_state_changed', state => { console.log( state ); } );
+window.onSpotifyWebPlaybackSDKReady = function() {
 
-		// Ready
-		player.addListener( 'ready', ( { device_id } ) => {
+	player = new Spotify.Player( {
+		name: 'Spectrify',
+		getOAuthToken: function( callback ) { callback( token ); }
+	} );
+
+	// Error handling
+	player.addListener( 'initialization_error', ( { message } ) => { console.error( message ); } );
+	player.addListener( 'authentication_error', ( { message } ) => { console.error( message ); } );
+	player.addListener( 'account_error', ( { message } ) => { console.error( message ); } );
+	player.addListener( 'playback_error', ( { message } ) => { console.error( message ); } );
+
+	// Ready
+	player.addListener( 'ready', ( { device_id } ) => {
 		console.log( 'Ready with Device ID', device_id );
-		} );
+	} );
 
-		// Not Ready
-		player.addListener( 'not_ready', ( { device_id } ) => {
+	// Not Ready
+	player.addListener( 'not_ready', ( { device_id } ) => {
 		console.log( 'Device ID has gone offline', device_id );
+	} );
+
+	// Connect to the player!
+	player.connect()
+		.then( success => {
+			if ( success ) {
+				console.log('The Web Playback SDK successfully connected to Spotify!')
+			}
 		} );
 
-		// Connect to the player!
-		player.connect()
-			.then( success => {
-				if ( success ) {
-					console.log('The Web Playback SDK successfully connected to Spotify!')
-				}
-			} );
-	};
+	// Playback status updates
+	player.addListener( 'player_state_changed', function( state ) {
+			// run another preset function to get state
+			// this is the only way I can use a promise off the back of a jQuery GET
+			// request to update the variables needed to pass into my visualise function
+			player.getCurrentState()
+				.then( function( state ) {
+					if ( !state ) {
+						console.error('getCurrentState 1; User is not playing music through the Web Playback SDK');
+						return;
+					};
 
- </script>
+					const { current_track } = state.track_window;
+					songId = current_track.id;
 
-<!-- p5 -->
- <script>
-	// let audioGrab;
- 	let amplitude;
- 	// let volume;
+					if ( currentSongId === undefined ) {
+						currentSongId = current_track.id;
+					} else if ( currentSongId !== current_track.id ) {
+						console.log( "we got a problem")
+						currentSongId = previousSongId;
+						currentSongId = current_track.id;
+					}
 
- 	function setup() {
-		createCanvas( windowWidth, windowHeight );
-		frameRate(30);
- 		// new audio in
- 		// audioGrab = new p5.AudioIn();
-		// turn on listener
- 		// audioGrab.start();
+					console.log( 'Currently Playing:', current_track );
 
- 		// amplitude = new p5.Amplitude();
- 		// amplitude.getLevel;
- 	}
+					// $.get( {
+					// 	url: songInfoUrl + current_track.id,
+					// 	headers: { "Authorization": `Bearer ${ token }`}
+					// }, function( { tempo } ) {
+					// 	songTempo = tempo;
+					// } );
+				} );
 
- 	function draw() {
- 		vol = audioGrab.getLevel();
+			// run another preset function to get state, this time looking for
+			// this is the only way I can use a promise off the back of a jQuery GET
+			// request to update the variables needed to pass into my visualise function
+			player.getCurrentState()
+				.then( function ( state ) {
+					if ( !state ) {
+						console.error('getCurrentState 2; User is not playing music through the Web Playback SDK');
+						return;
+					};
 
- 		background( 0 );
- 		ellipse( windowWidth / 2, windowHeight / 2, 250 + vol * 500, 250 + vol * 500 );
- 	}
+					if ( currentSongId === previousSongId ) {
+						return;
+					} else {
+						$.get( {
+							url: songAudioAnalysis + songId,
+							headers: { "Authorization": `Bearer ${ token }`}
+						}, function( { bars } ) {
+							console.log( bars );
+						} );
+					};
+				} );
+		} );
 
- 	function windowResized() {
- 		resizeCanvas( windowWidth, windowHeight );
- 	}
- </script>
+};
+</script>
