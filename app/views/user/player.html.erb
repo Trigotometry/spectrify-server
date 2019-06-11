@@ -4,19 +4,25 @@
 <script src="https://sdk.scdn.co/spotify-player.js"></script>
 <!-- Spotify Connect Creation -->
 <script>
+
+let songInfo = {
+	currentTack: null,
+	currentSongId: null,
+	previousSongId: null,
+	songId: null,
+	songTempo: null
+}
+let songAnalysisData = {
+	beats: null,
+	bars: null,
+	segments: null
+};
+
 let player;
 let token = '<%= @current_user.access_token %>';
-let songInfoUrl = "https://api.spotify.com/v1/audio-features/";
-let songAudioAnalysis = "https://api.spotify.com/v1/audio-analysis/";
-let songTempo;
-let songId;
+// let songInfoURL = "https://api.spotify.com/v1/audio-features/";
+let songAudioAnalysisURL = "https://api.spotify.com/v1/audio-analysis/";
 
-let bars;
-let beats;
-let segments;
-
-let currentSongId;
-let previousSongId;
 
 window.onSpotifyWebPlaybackSDKReady = function() {
 
@@ -61,30 +67,22 @@ window.onSpotifyWebPlaybackSDKReady = function() {
 						return;
 					};
 
-					const { current_track } = state.track_window;
-					songId = current_track.id;
-
-					if ( currentSongId === undefined ) {
-						currentSongId = current_track.id;
-					} else if ( currentSongId !== current_track.id ) {
-						console.log( "we got a problem")
-						currentSongId = previousSongId;
-						currentSongId = current_track.id;
+					// check to see if this is the first play
+					if ( songInfo.currentSongId === null ) {
+						// if first time streaming to Spectrify tab, update current song data with response from Spotify
+						songInfo.currentSongId = state.track_window.current_track.id;
+					// check to see if the stored current song ID is equal to the returned Spotify song ID
+					} else if ( songInfo.currentSongId !== state.track_window.current_track.id ) {
+						// if the song has changed then update the stored current song ID with the new one, assign the old one purely for reference
+						console.log( "Current song mismatch, updating with response." )
+						songInfo.previousSongId = songInfo.currentSongId;
+						songInfo.currentSongId = state.track_window.current_track.id;
 					}
 
-					console.log( 'Currently Playing:', current_track );
-
-					// $.get( {
-					// 	url: songInfoUrl + current_track.id,
-					// 	headers: { "Authorization": `Bearer ${ token }`}
-					// }, function( { tempo } ) {
-					// 	songTempo = tempo;
-					// } );
+					console.log( 'Currently Playing:', state.track_window.current_track );
 				} );
 
-			// run another preset function to get state, this time looking for
-			// this is the only way I can use a promise off the back of a jQuery GET
-			// request to update the variables needed to pass into my visualise function
+			// run another preset function to get state, this time pinging API for song analysis
 			player.getCurrentState()
 				.then( function ( state ) {
 					if ( !state ) {
@@ -92,17 +90,23 @@ window.onSpotifyWebPlaybackSDKReady = function() {
 						return;
 					};
 
-					if ( currentSongId === previousSongId ) {
+					if ( songInfo.currentSongId === songInfo.previousSongId ) {
+						return;
+					} else if ( state.paused ) {
 						return;
 					} else {
 						$.get( {
-							url: songAudioAnalysis + songId,
-							headers: { "Authorization": `Bearer ${ token }`}
-						}, function( { bars } ) {
-							console.log( bars );
+							url: songAudioAnalysisURL + songInfo.currentSongId,
+							headers: { "Authorization": `Bearer ${ token }` }
+						}, function( { bars, beats, segments } ) {
+							songAnalysisData.bars = bars;
+							songAnalysisData.beats = beats;
+							songAnalysisData.segments = segments;
+							// console.log( songAnalysisData );
 						} );
 					};
-				} );
+				} )
+				.then( gotData( songAnalysisData ) );
 		} );
 
 };

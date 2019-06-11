@@ -2,7 +2,7 @@
 // var cnv;
 // var notes = new Array( 12 );
 //
-// var audioEl;
+// // var audioEl;
 //
 // var maxDiameter;
 // var rotation = 0;
@@ -31,7 +31,7 @@
 // 		notes[ i ].draw();
 // 	}
 //
-// 	loadJSON( '../../music/Alaclair_Ensemble_-_Twit_JournalisT.json', gotData );
+// 	// loadJSON( '../../music/Alaclair_Ensemble_-_Twit_JournalisT.json', gotData );
 // 	// audioEl = createAudio('../../music/Alaclair_Ensemble_-_14_-_Twit_JournalisT.mp3');
 // }
 //
