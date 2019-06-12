@@ -12,7 +12,7 @@ class UserController < ApplicationController
 			# for some messed up reason, to read the playback state without and errors,
 			# I need to require acces to a user's private info and their birthdate..? wtf spotify...
 			# all I want is the email
-			scope: "user-read-private user-read-email user-read-birthdate streaming user-read-currently-playing user-read-playback-state user-modify-playback-state",
+			scope: "user-read-email user-read-currently-playing user-read-playback-state user-modify-playback-state",
 			show_dialog: true
 		}
 		# redirects user's browser to Spotify's authorisation page

@@ -1,15 +1,15 @@
 <div class="playerPage"></div>
-<div class="container">
-	<div class="row">
-		<div class="col d-flex justify-content-center align-center">
-			<div id="toast" class="toast">
+<div id="toastHolder" class="container-fluid d-flex flex-column justify-content-center">
+	<div class="prev"></div>
+	<div class="next"></div>
+	<div class="row d-flex justify-content-center">
+		<div class="col col-6">
+			<div id="spotifyUpdate" class="spotifyUpdateBox">
 				<span id="text"></span>
 				<span id="text2"></span>
 			</div>
 		</div>
 	</div>
-	<div class="prev"></div>
-	<div class="next"></div>
 	<div class="trackposition" id="trackposition">
 		<div class="fill" id="trackpositionfill"></div>
 	</div>
@@ -23,17 +23,15 @@
 	// player state
 	let artistName = "";
 	let albumName = "";
-	let visibleAlbumImageURL = "";
-	let nextVectorData = null;
 	let trackDuration = 180000;
 	let trackURI = "";
 	let trackPosition = 0;
 	let trackPlaying = false;
 	let trackName = "";
-	let imageList = [];
 	let currentTrack = null;
-
 	let lastTrackPositionUpdate = 0;
+
+	let pollDebounce = 0;
 
 	// misc ui
 	let closetimer = 0;
@@ -41,7 +39,7 @@
 	let fadeoutTime = 4000;
 
 	// --------------------------------------------------------------------------------------
-	// Network - XMLborrowed from github.com/jamescastells - LIFE SAVER!
+	// network - XMLborrowed from github.com/jamescastells - LIFE SAVER!
 	// --------------------------------------------------------------------------------------
 	function createRequest( method, url, onload ) {
 		let request = new XMLHttpRequest();
@@ -49,7 +47,9 @@
 		if (method != "GET") {
 			request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
 		}
-		request.onerror = function () {};
+		request.onerror = function () {
+			console.error("An error occured during the request.");
+		};
 		request.onload = onload.bind(this, request);
 		return request;
 	};
@@ -60,17 +60,17 @@
 		return request;
 	};
 
-
+	// NFI how this works... binding a setTimeout?
 	function _pollCurrentlyPlaying( callback ) {
 		createAuthorizedRequest("GET", "https://api.spotify.com/v1/me/player/currently-playing", function ( request ) {
-			if (request.status < 200 || request.status >= 400) {
+			if ( request.status < 200 || request.status >= 400 ) {
 				callback();
 				return;
 			};
 
-			let data = JSON.parse(request.responseText);
-			console.log("got data", data);
-			if (data.item) {
+			let data = JSON.parse( request.responseText );
+			// console.log("Current track:", data );
+			if ( data.item ) {
 				trackName = data.item.name;
 				albumName = data.item.album.name;
 				artistName = data.item.artists[0].name;
@@ -83,12 +83,12 @@
 		} ).send();
 	};
 
-	let pollDebounce = 0;
+	// NFI how this works... binding a setTimeout?
 	function pollCurrentlyPlaying( delay ) {
-		if (pollDebounce) {
-			clearTimeout(pollDebounce);
+		if ( pollDebounce ) {
+			clearTimeout( pollDebounce );
 		}
-		pollDebounce = setTimeout(_pollCurrentlyPlaying.bind( this, pollCurrentlyPlaying.bind( this ) ), delay || 5000 );
+		pollDebounce = setTimeout( _pollCurrentlyPlaying.bind( this, pollCurrentlyPlaying.bind( this ) ), delay || 5000 );
 	};
 
 	function getUserInformation( callback ) {
@@ -103,16 +103,6 @@
 			callback( data );
 		} ).send();
 	};
-
-	// can setup to play hidden songs
-	// function sendPlayCommand( payload ) {
-	// 	createAuthorizedRequest("PUT", "https://api.spotify.com/v1/me/player/play", function (request) {
-	// 		if (request.status >= 200 && request.status < 400) {
-	// 			console.log("play command response", request.responseText);
-	// 		}
-	// 		pollCurrentlyPlaying(1500);
-	// 	}).send(JSON.stringify(payload));
-	// }
 
 	function fetchArtist( artist_uri, callback ) {
 		console.log( "fetching artist", artist_uri );
@@ -129,31 +119,31 @@
 	// commands for playback
 	// --------------------------------------------------------------------------------------
 	function sendCommand( method, command, querystring ) {
-		console.log("COMMAND: " + command);
-		let url = "https://api.spotify.com/v1/me/player/" + command + (
-			querystring
-				? ("?" + querystring)
-				: ""
-		);
-		createAuthorizedRequest(method, url, function (request) {
-			if (request.status >= 200 && request.status < 400) {
-				console.log("Command response:", request.responseText);
+		console.log( "method: " + method );
+		console.log( "command: " + command );
+		console.log( "querystring: " + querystring );
+		let url = "https://api.spotify.com/v1/me/player/" + command + ( querystring ? "?" + querystring : "" );
+		console.log( url )
+		createAuthorizedRequest( method, url, function ( request ) {
+			if ( request.status >= 200 && request.status < 400 ) {
+				console.log("command response:", request.responseText);
 			};
-			pollCurrentlyPlaying(1500);
+			pollCurrentlyPlaying( 1500 );
 		} ).send();
 	};
 
-	function sendPlayContext(uri, offset) {
-		sendPlayCommand({
+	// skip forward in song by clicking on progress bar
+	function sendPlayContext( uri, offset ) {
+		sendPlayCommand( {
 			context_uri: uri,
 			offset: {
 				position: offset || 0
 			}
-		});
+		} );
 	}
 
 	// --------------------------------------------------------------------------------------
-	// DOM UI
+	// DOM manip
 	// --------------------------------------------------------------------------------------
 	function updateTrackPosition() {
 		let t = (new Date()).getTime();
@@ -176,11 +166,12 @@
 	function toast(title, subtitle) {
 		document.getElementById( "text" ).innerText = title || "";
 		document.getElementById( "text2" ).innerText = subtitle || "";
-		document.getElementById( "toast" ).className = "toast visible";
+		$( "#spotifyUpdate" ).addClass("visible");
 
 		clearTimeout( closetimer );
 		closetimer = setTimeout( function () {
-			document.getElementById( "toast" ).className = "toast";
+			$( "#spotifyUpdate" ).removeClass("visible");
+			// document.getElementById( "spotifyUpdate" ).className = "spotifyUpdateBox";
 		}, 5000 );
 	}
 
@@ -194,19 +185,17 @@
 	}
 
 	function connect() {
-		console.log( "Connecting with access token: " + accessToken );
+		// console.log( "Connecting with access token: " + accessToken );
+		console.log("Retrieving user info.");
 		getUserInformation( function ( userinfo ) {
 			if ( !userinfo ) {
 				accessToken = "";
-				// showLogin();
 				return;
 			}
 
-			// hideLogin();
-			toast("Hello " + (
-				userinfo.display_name || userinfo.id
-			) + "!", "Make sure you\"re playing something in Spotify!");
-			pollCurrentlyPlaying(2000);
+			toast("Hello " + ( userinfo.display_name || userinfo.id ) + "!", "Make sure you\'re playing something in Spotify!");
+			console.log("Connecting to stream...")
+			pollCurrentlyPlaying( 2000 );
 		} );
 	}
 
@@ -220,17 +209,17 @@
 		setInterval( updateTrackPosition, 1000 );
 	}
 
-	// setup buttons for playback commands
+	// setup keyboard for playback commands
 	function initKeyboard() {
 		window.addEventListener("keyup", function ( event ) {
 			// left
 			if ( event.keyCode === 37 ) {
-				console.log("Next...");
+				console.log("Prev...");
 				sendCommand("POST", "previous");
 			}
 			// right
 			if ( event.keyCode === 39 ) {
-				console.log("Prev...");
+				console.log("Next...");
 				sendCommand("POST", "next");
 			}
 			// space

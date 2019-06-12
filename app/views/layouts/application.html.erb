@@ -11,7 +11,7 @@
 	</head>
 
 	<body id="background" onload="firstColour()" onclick="firstColour()">
-		<nav class="navbar navbar-expand-sm navbar-dark bg-dark">
+		<nav class="navbar navbar-expand-sm navbar-dark">
 			<a class="navbar-brand" href="/">Spectrify</a>
 			<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
 				<span class="navbar-toggler-icon"></span>
@@ -20,14 +20,14 @@
 				<ul class="navbar-nav ml-auto">
 					<% unless @current_user.present? %>
 						<li class="nav-item">
-							<a class="nav-link" href="/login">Log In</a>
+							<a class="nav-link text-white" href="/login">Log In</a>
 						</li>
 					<% else %>
 					<li class="nav-item">
-						<a class="nav-link" href="/player">Player</a>
+						<a class="nav-link text-white" href="/player">Visualiser</a>
 					</li>
 					<li class="nav-item">
-							<a class="nav-link" href="/logout">Log Out</a>
+							<a class="nav-link text-white" href="/logout">Log Out</a>
 					</li>
 					<% end %>
 				</ul>

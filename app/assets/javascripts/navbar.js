@@ -10,4 +10,12 @@ $( document ).ready( function() {
 		$( this ).fadeTo( 1000, 0 );
 	} );
 
+	$( ".prev" ).on( "click", function() {
+		sendCommand("POST", "previous");
+	} );
+
+	$( ".next" ).on( "click", function() {
+		sendCommand("POST", "next");
+	} );
+
 } );

@@ -2,7 +2,7 @@
 	<div class="row text-center mt-5">
 		<div class="col">
 			<% unless @current_user.present? %>
-				<h3>Not logged into Spectrify.</h3>
+				<h3 class="text-white">Not logged into Spectrify.</h3>
 				<% else %>
 				<h4>Weclome, <%= @current_user.display_name.present? ? @current_user.display_name : @current_user.email %>.</h4>
 			<% end %>
