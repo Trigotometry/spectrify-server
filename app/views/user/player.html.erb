@@ -1,113 +1,261 @@
-<div class="playerPage" style="display: none"></div>
+<div class="playerPage"></div>
+<div class="container">
+	<div class="row">
+		<div class="col d-flex justify-content-center align-center">
+			<div id="toast" class="toast">
+				<span id="text"></span>
+				<span id="text2"></span>
+			</div>
+		</div>
+	</div>
+	<div class="prev"></div>
+	<div class="next"></div>
+	<div class="trackposition" id="trackposition">
+		<div class="fill" id="trackpositionfill"></div>
+	</div>
+</div>
 
-<!-- Spotify CDN Setup -->
-<script src="https://sdk.scdn.co/spotify-player.js"></script>
-<!-- Spotify Connect Creation -->
 <script>
+	// auth
+	let CLIENT_ID = "<%= Rails.application.secrets.SPECTRIFY_CLIENT_ID %>";
+	const accessToken = "<%= @current_user.access_token %>";
 
-let songInfo = {
-	currentTack: null,
-	currentSongId: null,
-	previousSongId: null,
-	songId: null,
-	songTempo: null
-}
-let songAnalysisData = {
-	beats: null,
-	bars: null,
-	segments: null
-};
+	// player state
+	let artistName = "";
+	let albumName = "";
+	let visibleAlbumImageURL = "";
+	let nextVectorData = null;
+	let trackDuration = 180000;
+	let trackURI = "";
+	let trackPosition = 0;
+	let trackPlaying = false;
+	let trackName = "";
+	let imageList = [];
+	let currentTrack = null;
 
-let player;
-let token = '<%= @current_user.access_token %>';
-// let songInfoURL = "https://api.spotify.com/v1/audio-features/";
-let songAudioAnalysisURL = "https://api.spotify.com/v1/audio-analysis/";
+	let lastTrackPositionUpdate = 0;
+
+	// misc ui
+	let closetimer = 0;
+	let fadeinTime = 10000;
+	let fadeoutTime = 4000;
+
+	// --------------------------------------------------------------------------------------
+	// Network - XMLborrowed from github.com/jamescastells - LIFE SAVER!
+	// --------------------------------------------------------------------------------------
+	function createRequest( method, url, onload ) {
+		let request = new XMLHttpRequest();
+		request.open(method, url);
+		if (method != "GET") {
+			request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+		}
+		request.onerror = function () {};
+		request.onload = onload.bind(this, request);
+		return request;
+	};
+
+	function createAuthorizedRequest( method, url, onload ) {
+		let request = createRequest( method, url, onload );
+		request.setRequestHeader( "Authorization", "Bearer " + accessToken );
+		return request;
+	};
 
 
-window.onSpotifyWebPlaybackSDKReady = function() {
+	function _pollCurrentlyPlaying( callback ) {
+		createAuthorizedRequest("GET", "https://api.spotify.com/v1/me/player/currently-playing", function ( request ) {
+			if (request.status < 200 || request.status >= 400) {
+				callback();
+				return;
+			};
 
-	player = new Spotify.Player( {
-		name: 'Spectrify',
-		getOAuthToken: function( callback ) { callback( token ); }
-	} );
+			let data = JSON.parse(request.responseText);
+			console.log("got data", data);
+			if (data.item) {
+				trackName = data.item.name;
+				albumName = data.item.album.name;
+				artistName = data.item.artists[0].name;
+				setNowPlayingTrack(data.item);
+				trackPosition = data.progress_ms;
+				trackDuration = data.item.duration_ms;
+				trackPlaying = data.is_playing
+			};
+			callback();
+		} ).send();
+	};
 
-	// Error handling
-	player.addListener( 'initialization_error', ( { message } ) => { console.error( message ); } );
-	player.addListener( 'authentication_error', ( { message } ) => { console.error( message ); } );
-	player.addListener( 'account_error', ( { message } ) => { console.error( message ); } );
-	player.addListener( 'playback_error', ( { message } ) => { console.error( message ); } );
+	let pollDebounce = 0;
+	function pollCurrentlyPlaying( delay ) {
+		if (pollDebounce) {
+			clearTimeout(pollDebounce);
+		}
+		pollDebounce = setTimeout(_pollCurrentlyPlaying.bind( this, pollCurrentlyPlaying.bind( this ) ), delay || 5000 );
+	};
 
-	// Ready
-	player.addListener( 'ready', ( { device_id } ) => {
-		console.log( 'Ready with Device ID', device_id );
-	} );
-
-	// Not Ready
-	player.addListener( 'not_ready', ( { device_id } ) => {
-		console.log( 'Device ID has gone offline', device_id );
-	} );
-
-	// Connect to the player!
-	player.connect()
-		.then( success => {
-			if ( success ) {
-				console.log('The Web Playback SDK successfully connected to Spotify!')
+	function getUserInformation( callback ) {
+		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/me", function ( request ) {
+			if ( request.status < 200 || request.status >= 400 ) {
+				callback(null);
+				return;
 			}
+
+			console.log( "User info retrieved:", request.responseText );
+			let data = JSON.parse( request.responseText );
+			callback( data );
+		} ).send();
+	};
+
+	// can setup to play hidden songs
+	// function sendPlayCommand( payload ) {
+	// 	createAuthorizedRequest("PUT", "https://api.spotify.com/v1/me/player/play", function (request) {
+	// 		if (request.status >= 200 && request.status < 400) {
+	// 			console.log("play command response", request.responseText);
+	// 		}
+	// 		pollCurrentlyPlaying(1500);
+	// 	}).send(JSON.stringify(payload));
+	// }
+
+	function fetchArtist( artist_uri, callback ) {
+		console.log( "fetching artist", artist_uri );
+		let artistId = artist_uri.split(":")[2];
+		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/artists/" + artistId, function ( request ) {
+			if ( request.status >= 200 && request.status < 400 ) {
+				let data = JSON.parse(request.responseText);
+				callback( data );
+			}
+		} ).send();
+	};
+
+	// --------------------------------------------------------------------------------------
+	// commands for playback
+	// --------------------------------------------------------------------------------------
+	function sendCommand( method, command, querystring ) {
+		console.log("COMMAND: " + command);
+		let url = "https://api.spotify.com/v1/me/player/" + command + (
+			querystring
+				? ("?" + querystring)
+				: ""
+		);
+		createAuthorizedRequest(method, url, function (request) {
+			if (request.status >= 200 && request.status < 400) {
+				console.log("Command response:", request.responseText);
+			};
+			pollCurrentlyPlaying(1500);
+		} ).send();
+	};
+
+	function sendPlayContext(uri, offset) {
+		sendPlayCommand({
+			context_uri: uri,
+			offset: {
+				position: offset || 0
+			}
+		});
+	}
+
+	// --------------------------------------------------------------------------------------
+	// DOM UI
+	// --------------------------------------------------------------------------------------
+	function updateTrackPosition() {
+		let t = (new Date()).getTime();
+		if ( lastTrackPositionUpdate == 0 ) {
+			lastTrackPositionUpdate = t;
+		}
+
+		let dt = t - lastTrackPositionUpdate;
+		lastTrackPositionUpdate = t;
+
+		if ( trackPlaying ) {
+			trackPosition += dt;
+		}
+
+		let w = trackPosition * 100 / trackDuration;
+		w = Math.max( Math.min( 100, w ), 0 );
+		document.getElementById( "trackpositionfill" ).style.width = w + "%";
+	}
+
+	function toast(title, subtitle) {
+		document.getElementById( "text" ).innerText = title || "";
+		document.getElementById( "text2" ).innerText = subtitle || "";
+		document.getElementById( "toast" ).className = "toast visible";
+
+		clearTimeout( closetimer );
+		closetimer = setTimeout( function () {
+			document.getElementById( "toast" ).className = "toast";
+		}, 5000 );
+	}
+
+	function setNowPlayingTrack( track ) {
+		if ( track.uri == trackURI ) {
+			return;
+		}
+		currentTrack = track;
+		trackURI = track.uri;
+		toast( trackName, artistName + " - " + albumName );
+	}
+
+	function connect() {
+		console.log( "Connecting with access token: " + accessToken );
+		getUserInformation( function ( userinfo ) {
+			if ( !userinfo ) {
+				accessToken = "";
+				// showLogin();
+				return;
+			}
+
+			// hideLogin();
+			toast("Hello " + (
+				userinfo.display_name || userinfo.id
+			) + "!", "Make sure you\"re playing something in Spotify!");
+			pollCurrentlyPlaying(2000);
 		} );
+	}
 
-	// Playback status updates
-	player.addListener( 'player_state_changed', function( state ) {
-			// run another preset function to get state
-			// this is the only way I can use a promise off the back of a jQuery GET
-			// request to update the variables needed to pass into my visualise function
-			player.getCurrentState()
-				.then( function( state ) {
-					if ( !state ) {
-						console.error('getCurrentState 1; User is not playing music through the Web Playback SDK');
-						return;
-					};
+	function initUI() {
+		document.getElementById( "trackposition" ).addEventListener("mousedown", function ( event ) {
+			let time = event.offsetX * trackDuration / document.body.offsetWidth;
+			trackPosition = time;
+			sendCommand( "PUT", "seek", "position_ms=" + Math.round( time ) );
+		});
 
-					// check to see if this is the first play
-					if ( songInfo.currentSongId === null ) {
-						// if first time streaming to Spectrify tab, update current song data with response from Spotify
-						songInfo.currentSongId = state.track_window.current_track.id;
-					// check to see if the stored current song ID is equal to the returned Spotify song ID
-					} else if ( songInfo.currentSongId !== state.track_window.current_track.id ) {
-						// if the song has changed then update the stored current song ID with the new one, assign the old one purely for reference
-						console.log( "Current song mismatch, updating with response." )
-						songInfo.previousSongId = songInfo.currentSongId;
-						songInfo.currentSongId = state.track_window.current_track.id;
-					}
+		setInterval( updateTrackPosition, 1000 );
+	}
 
-					console.log( 'Currently Playing:', state.track_window.current_track );
-				} );
+	// setup buttons for playback commands
+	function initKeyboard() {
+		window.addEventListener("keyup", function ( event ) {
+			// left
+			if ( event.keyCode === 37 ) {
+				console.log("Next...");
+				sendCommand("POST", "previous");
+			}
+			// right
+			if ( event.keyCode === 39 ) {
+				console.log("Prev...");
+				sendCommand("POST", "next");
+			}
+			// space
+			if ( event.keyCode === 32 ) {
+				if (trackPlaying) {
+					console.log("Pausing...");
+					trackPlaying = false;
+					sendCommand("PUT", "pause");
+				} else {
+					console.log("Playing...");
+					trackPlaying = true;
+					sendCommand("PUT", "play");
+				}
+			}
+		});
+	}
 
-			// run another preset function to get state, this time pinging API for song analysis
-			player.getCurrentState()
-				.then( function ( state ) {
-					if ( !state ) {
-						console.error('getCurrentState 2; User is not playing music through the Web Playback SDK');
-						return;
-					};
+	// --------------------------------------------------------------------------------------
+	// fireItUp
+	// --------------------------------------------------------------------------------------
+	function fireItUp() {
+		initKeyboard();
+		initUI();
+		connect();
+	}
 
-					if ( songInfo.currentSongId === songInfo.previousSongId ) {
-						return;
-					} else if ( state.paused ) {
-						return;
-					} else {
-						$.get( {
-							url: songAudioAnalysisURL + songInfo.currentSongId,
-							headers: { "Authorization": `Bearer ${ token }` }
-						}, function( { bars, beats, segments } ) {
-							songAnalysisData.bars = bars;
-							songAnalysisData.beats = beats;
-							songAnalysisData.segments = segments;
-							// console.log( songAnalysisData );
-						} );
-					};
-				} )
-				.then( gotData( songAnalysisData ) );
-		} );
-
-};
+	window.addEventListener( "load", fireItUp );
 </script>
