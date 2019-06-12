@@ -1,5 +1,8 @@
 {
-  "name": "spectrify",
-  "private": true,
-  "dependencies": {}
+	"name": "spectrify",
+	"private": true,
+	"dependencies": {},
+	"engines": {
+		"yarn": ">= 0.25.2"
+	}
 }
