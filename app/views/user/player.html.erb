@@ -5,8 +5,8 @@
 	<div class="row d-flex justify-content-center">
 		<div class="col col-6">
 			<div id="spotifyUpdate" class="spotifyUpdateBox">
-				<span id="text"></span>
-				<span id="text2"></span>
+				<h3 id="title" class="text-white"></h3>
+				<h6 id="artist" class="text-white"></h6>
 			</div>
 		</div>
 	</div>
@@ -29,6 +29,7 @@
 	let trackPlaying = false;
 	let trackName = "";
 	let currentTrack = null;
+	// playhead location
 	let lastTrackPositionUpdate = 0;
 
 	let pollDebounce = 0;
@@ -67,7 +68,7 @@
 				callback();
 				return;
 			};
-
+			
 			let data = JSON.parse( request.responseText );
 			// console.log("Current track:", data );
 			if ( data.item ) {
@@ -119,14 +120,14 @@
 	// commands for playback
 	// --------------------------------------------------------------------------------------
 	function sendCommand( method, command, querystring ) {
-		console.log( "method: " + method );
-		console.log( "command: " + command );
-		console.log( "querystring: " + querystring );
+		// console.log( "method: " + method );
+		// console.log( "command: " + command );
+		// console.log( "querystring: " + querystring );
 		let url = "https://api.spotify.com/v1/me/player/" + command + ( querystring ? "?" + querystring : "" );
-		console.log( url )
+		// console.log( url )
 		createAuthorizedRequest( method, url, function ( request ) {
 			if ( request.status >= 200 && request.status < 400 ) {
-				console.log("command response:", request.responseText);
+				// console.log("command response:", request.responseText);
 			};
 			pollCurrentlyPlaying( 1500 );
 		} ).send();
@@ -146,32 +147,37 @@
 	// DOM manip
 	// --------------------------------------------------------------------------------------
 	function updateTrackPosition() {
-		let t = (new Date()).getTime();
+		// get the current time
+		let time = ( new Date() ).getTime();
+
+		// if global variable not set, set to time just acquired
 		if ( lastTrackPositionUpdate == 0 ) {
-			lastTrackPositionUpdate = t;
-		}
+			lastTrackPositionUpdate = time;
+		};
 
-		let dt = t - lastTrackPositionUpdate;
-		lastTrackPositionUpdate = t;
+		// calc the difference between last update and time just acquired
+		let elapsedTime = time - lastTrackPositionUpdate;
+		// update new global time to time just acquired, so next pass references it
+		lastTrackPositionUpdate = time;
 
+		// track playing is update from _pollCurrentlyPlaying
 		if ( trackPlaying ) {
-			trackPosition += dt;
-		}
+			trackPosition += elapsedTime;
+		};
 
-		let w = trackPosition * 100 / trackDuration;
-		w = Math.max( Math.min( 100, w ), 0 );
-		document.getElementById( "trackpositionfill" ).style.width = w + "%";
+		let playheadLocation = trackPosition * 100 / trackDuration;
+		playheadLocation = Math.max( Math.min( 100, playheadLocation ), 0 );
+		document.getElementById( "trackpositionfill" ).style.width = playheadLocation + "%";
 	}
 
-	function toast(title, subtitle) {
-		document.getElementById( "text" ).innerText = title || "";
-		document.getElementById( "text2" ).innerText = subtitle || "";
+	function notificationPopup( title, subtitle ) {
+		document.getElementById( "title" ).innerText = title || "";
+		document.getElementById( "artist" ).innerText = subtitle || "";
 		$( "#spotifyUpdate" ).addClass("visible");
 
 		clearTimeout( closetimer );
 		closetimer = setTimeout( function () {
-			$( "#spotifyUpdate" ).removeClass("visible");
-			// document.getElementById( "spotifyUpdate" ).className = "spotifyUpdateBox";
+			$( "#spotifyUpdate" ).removeClass( "visible" );
 		}, 5000 );
 	}
 
@@ -181,7 +187,7 @@
 		}
 		currentTrack = track;
 		trackURI = track.uri;
-		toast( trackName, artistName + " - " + albumName );
+		notificationPopup( trackName, artistName + " - " + albumName );
 	}
 
 	function connect() {
@@ -193,7 +199,7 @@
 				return;
 			}
 
-			toast("Hello " + ( userinfo.display_name || userinfo.id ) + "!", "Make sure you\'re playing something in Spotify!");
+			notificationPopup("Hello " + ( userinfo.display_name || userinfo.id ) + "!", "Make sure you\'re playing something in Spotify!");
 			console.log("Connecting to stream...")
 			pollCurrentlyPlaying( 2000 );
 		} );

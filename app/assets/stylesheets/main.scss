@@ -7,8 +7,8 @@ html {
 	height: 100vh;
 }
 
-div#toastHolder {
-	height: calc(100% - 56px);
+div#toastHolder, div#loginHolder {
+	height: calc(100% - 112px);
 }
 
 div.prev {
@@ -49,20 +49,12 @@ div.spotifyUpdateBox.visible {
 	opacity: 1.0;
 }
 
-div.spotifyUpdateBox #text {
-	display: block;
+div.spotifyUpdateBox #title {
 	font-size: 25pt;
-	font-family: "Helvetica Neue", Helvetica;
-	font-weight: 100;
-	color: #fff;
 }
 
-div.spotifyUpdateBox #text2 {
-	display: block;
+div.spotifyUpdateBox #artist {
 	font-size: 15pt;
-	font-family: "Helvetica Neue", Helvetica;
-	font-weight: 100;
-	color: #ccc;
 }
 
 div.trackposition {
@@ -73,6 +65,7 @@ div.trackposition {
 	height: 25px;
 	background-color: rgba(0,0,0,0.4);
 	border-radius: 25px;
+	z-index: 2000;
 }
 
 div.trackposition div.fill {
@@ -82,4 +75,5 @@ div.trackposition div.fill {
 	left: 0;
 	height: 25px;
 	border-radius: 25px;
+	z-index: 2100;
 }

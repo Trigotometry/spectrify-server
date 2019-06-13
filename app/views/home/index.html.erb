@@ -1,10 +1,10 @@
-<div class="container">
+<div id="loginHolder" class="container-fluid d-flex flex-column justify-content-center">
 	<div class="row text-center mt-5">
 		<div class="col">
 			<% unless @current_user.present? %>
 				<h3 class="text-white">Not logged into Spectrify.</h3>
 				<% else %>
-				<h4>Weclome, <%= @current_user.display_name.present? ? @current_user.display_name : @current_user.email %>.</h4>
+				<h4 class="text-white">Weclome, <%= @current_user.display_name.present? ? @current_user.display_name : @current_user.email %>.</h4>
 			<% end %>
 		</div>
 	</div>

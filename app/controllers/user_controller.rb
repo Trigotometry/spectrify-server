@@ -9,14 +9,11 @@ class UserController < ApplicationController
 			client_id: Rails.application.secrets.SPECTRIFY_CLIENT_ID,
 			response_type: "code",
 			redirect_uri: Rails.application.secrets.SPECTRIFY_REDIRECT_URI,
-			# for some messed up reason, to read the playback state without and errors,
-			# I need to require acces to a user's private info and their birthdate..? wtf spotify...
-			# all I want is the email
 			scope: "user-read-email user-read-currently-playing user-read-playback-state user-modify-playback-state",
 			show_dialog: true
 		}
 		# redirects user's browser to Spotify's authorisation page
-		# the page details the scopes Spectrify is requesting
+		# the URL details the scopes Spectrify is requesting
 		redirect_to "#{ url }?#{ query_params.to_query }"
 	end
 
