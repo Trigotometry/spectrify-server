@@ -1,10 +1,11 @@
 <div class="playerPage"></div>
-<div id="toastHolder" class="container-fluid d-flex flex-column justify-content-center">
+<div id="popupHolder" class="container-fluid d-flex flex-column justify-content-center">
 	<div class="prev"></div>
 	<div class="next"></div>
 	<div class="row d-flex justify-content-center">
-		<div class="col col-6">
-			<div id="spotifyUpdate" class="spotifyUpdateBox">
+		<div class="col">
+			<div id="spotifyUpdate" class="spotifyUpdate">
+				<!-- <img id="artwork" alt="current album artwork"> -->
 				<h3 id="title" class="text-white"></h3>
 				<h6 id="artist" class="text-white"></h6>
 			</div>
@@ -23,6 +24,7 @@
 	// player state
 	let artistName = "";
 	let albumName = "";
+	let albumArt = "";
 	let trackDuration = 180000;
 	let trackURI = "";
 	let trackPosition = 0;
@@ -68,12 +70,13 @@
 				callback();
 				return;
 			};
-			
+
 			let data = JSON.parse( request.responseText );
-			// console.log("Current track:", data );
+			console.log("Current track:", data );
 			if ( data.item ) {
 				trackName = data.item.name;
 				albumName = data.item.album.name;
+				albumArt = data.item.album.images[2].url;
 				artistName = data.item.artists[0].name;
 				setNowPlayingTrack(data.item);
 				trackPosition = data.progress_ms;
@@ -121,9 +124,9 @@
 	// --------------------------------------------------------------------------------------
 	function sendCommand( method, command, querystring ) {
 		// console.log( "method: " + method );
-		// console.log( "command: " + command );
+		console.log( "command: " + command );
 		// console.log( "querystring: " + querystring );
-		let url = "https://api.spotify.com/v1/me/player/" + command + ( querystring ? "?" + querystring : "" );
+		let url = "https://api.spotify.com/v1/me/player/" + command + ( ( querystring ) ? ( "?" + querystring ) : "" );
 		// console.log( url )
 		createAuthorizedRequest( method, url, function ( request ) {
 			if ( request.status >= 200 && request.status < 400 ) {
@@ -170,9 +173,10 @@
 		document.getElementById( "trackpositionfill" ).style.width = playheadLocation + "%";
 	}
 
-	function notificationPopup( title, subtitle ) {
+	function notificationPopup( title, subtitle, artwork ) {
 		document.getElementById( "title" ).innerText = title || "";
 		document.getElementById( "artist" ).innerText = subtitle || "";
+		// document.getElementById( "artwork" ).src = artwork || "";
 		$( "#spotifyUpdate" ).addClass("visible");
 
 		clearTimeout( closetimer );
@@ -187,7 +191,7 @@
 		}
 		currentTrack = track;
 		trackURI = track.uri;
-		notificationPopup( trackName, artistName + " - " + albumName );
+		notificationPopup( trackName, artistName + " - " + albumName, albumArt );
 	}
 
 	function connect() {
