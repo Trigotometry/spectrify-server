@@ -19,17 +19,15 @@ And so, after much learning I have pivoted towards a web interface controller wh
 You can find *Spectrify* at, please note that it is currently still a WIP;
 https://spectrify.herokuapp.com
 
-#### Setting up a Prnkstr link.
-![Setting up a Prnkstr Link](https://raw.githubusercontent.com/Trigotometry/prnkstr-extension/master/readme%20images/%231%20Prnkstr%20Link.png)
-#### Prnkstr Dashboard Login
-![Prnkstr Dashboard Login](https://raw.githubusercontent.com/Trigotometry/prnkstr-extension/master/readme%20images/%232%20Prnkstr%20Login.png)
-#### List of users to select from.
-![List of already made links.](https://raw.githubusercontent.com/Trigotometry/prnkstr-extension/master/readme%20images/%233%20Prnkstr%20Linked%20List.png)
-#### Prnkstr Dashboard — Displays list of current DOM manipulation features.
-![Prnkstr Dashboard](https://raw.githubusercontent.com/Trigotometry/prnkstr-extension/master/readme%20images/%234%20Prnkstr%20Dashboard.png) -->
+#### Spectrify landing page.
+![Spectrify Home](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-home2.png)
+#### Spectrify BG change examples & toasts.
+![Spectrify BPM BG #1](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-beat1.png)
+![Spectrify BPM BG #2](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-beat2.png)
+![Spectrify BPM BG #3](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-beat3.png)
 
 ### **Potential Updates & Additions.**
-<!-- - Opposite day - (change a list of words to their opposite: "is" to "isn't" etc).
-- Matrix mode - (rotate all text elements by 90 & change text colour to green, invert whites to black and wrap them in <marquee.> tag. ) -->
+- LIFX integration.
+- Drop down to choose colour palette, so BG only sits within one scheme with varying shades.
 
 **Thank you to both Joel and Yianni for fielding questions.**
