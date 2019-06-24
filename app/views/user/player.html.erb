@@ -5,14 +5,14 @@
 	<div class="row d-flex justify-content-center">
 		<div class="col">
 			<div id="spotifyUpdate" class="spotifyUpdate">
-				<!-- <img id="artwork" alt="current album artwork"> -->
 				<h3 id="title" class="text-white"></h3>
 				<h6 id="artist" class="text-white"></h6>
+				<h6 id="tempo" class="text-white"></h6>
 			</div>
 		</div>
 	</div>
-	<div class="trackposition" id="trackposition">
-		<div class="fill" id="trackpositionfill"></div>
+	<div id="trackposition">
+		<div id="trackpositionfill"></div>
 	</div>
 </div>
 
@@ -24,17 +24,20 @@
 	// player state
 	let artistName = "";
 	let albumName = "";
-	let albumArt = "";
-	let trackDuration = 180000;
+	// let albumArt = "";
 	let trackURI = "";
+	let trackDuration = 1;
 	let trackPosition = 0;
 	let trackPlaying = false;
 	let trackName = "";
 	let currentTrack = null;
+	let trackTempo = null;
 	// playhead location
 	let lastTrackPositionUpdate = 0;
 
 	let pollDebounce = 0;
+
+	let bgOn = null;
 
 	// misc ui
 	let closetimer = 0;
@@ -42,43 +45,50 @@
 	let fadeoutTime = 4000;
 
 	// --------------------------------------------------------------------------------------
-	// network - XMLborrowed from github.com/jamescastells - LIFE SAVER!
+	// network - XMLHttp functions borrowed from github.com/jamescastells - LIFE SAVER!
+	// TO DO, convert to ES6 fetchs
 	// --------------------------------------------------------------------------------------
-	function createRequest( method, url, onload ) {
+	function createRequest( method, url, callback ) {
+		// console.log("createRequest Start")
 		let request = new XMLHttpRequest();
-		request.open(method, url);
-		if (method != "GET") {
-			request.setRequestHeader("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8");
+		request.open( method, url );
+		if ( method != "GET" ) {
+			request.setRequestHeader( "Content-Type", "application/x-www-form-urlencoded; charset=UTF-8" );
 		}
-		request.onerror = function () {
-			console.error("An error occured during the request.");
+		request.onerror = function() {
+			console.error( "An error occured during the request." );
 		};
-		request.onload = onload.bind(this, request);
+		request.onload = callback.bind( this, request );
+		// console.log("createRequest End")
 		return request;
 	};
 
-	function createAuthorizedRequest( method, url, onload ) {
-		let request = createRequest( method, url, onload );
+	function createAuthorizedRequest( method, url, callback ) {
+		// console.log("createAuthorisedRequest Start")
+		let request = createRequest( method, url, callback );
 		request.setRequestHeader( "Authorization", "Bearer " + accessToken );
+		// console.log("createAuthorisedRequest End")
 		return request;
 	};
 
 	// NFI how this works... binding a setTimeout?
 	function _pollCurrentlyPlaying( callback ) {
-		createAuthorizedRequest("GET", "https://api.spotify.com/v1/me/player/currently-playing", function ( request ) {
+		// get current song info
+		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/me/player/currently-playing", function( request ) {
 			if ( request.status < 200 || request.status >= 400 ) {
 				callback();
 				return;
 			};
 
 			let data = JSON.parse( request.responseText );
-			console.log("Current track:", data );
+			// console.log("Current Track:", data );
 			if ( data.item ) {
+				getTrackTempo( data.item.id, updateBackground );
 				trackName = data.item.name;
 				albumName = data.item.album.name;
-				albumArt = data.item.album.images[2].url;
+				// albumArt = data.item.album.images[2].url;
 				artistName = data.item.artists[0].name;
-				setNowPlayingTrack(data.item);
+				setNowPlayingTrack( data.item );
 				trackPosition = data.progress_ms;
 				trackDuration = data.item.duration_ms;
 				trackPlaying = data.is_playing
@@ -92,32 +102,38 @@
 		if ( pollDebounce ) {
 			clearTimeout( pollDebounce );
 		}
-		pollDebounce = setTimeout( _pollCurrentlyPlaying.bind( this, pollCurrentlyPlaying.bind( this ) ), delay || 5000 );
+		pollDebounce = setTimeout( _pollCurrentlyPlaying.bind( this, pollCurrentlyPlaying.bind( this ) ), delay || 500 );
 	};
 
 	function getUserInformation( callback ) {
+		// console.log("getUserInformation Start")
 		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/me", function ( request ) {
+			// console.log("createAuthRequest ANON Start")
 			if ( request.status < 200 || request.status >= 400 ) {
-				callback(null);
+				callback( null );
 				return;
 			}
 
-			console.log( "User info retrieved:", request.responseText );
-			let data = JSON.parse( request.responseText );
-			callback( data );
+			// console.log( "User info retrieved:", request.responseText );
+			let userInfo = JSON.parse( request.responseText );
+			// console.log("createAuthRequest ANON End")
+			callback( userInfo );
 		} ).send();
+		// console.log("getUserInformation End")
 	};
 
-	function fetchArtist( artist_uri, callback ) {
-		console.log( "fetching artist", artist_uri );
-		let artistId = artist_uri.split(":")[2];
-		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/artists/" + artistId, function ( request ) {
-			if ( request.status >= 200 && request.status < 400 ) {
-				let data = JSON.parse(request.responseText);
-				callback( data );
-			}
+	function getTrackTempo( track, callback ) {
+		createAuthorizedRequest( "GET", `https://api.spotify.com/v1/audio-features/${ track }`, function( request ) {
+			if ( request.status < 200 || request.status >= 400 ) {
+				return;
+			};
+
+			let data = JSON.parse( request.responseText );
+			trackTempo = data.tempo;
+
+			callback();
 		} ).send();
-	};
+	}
 
 	// --------------------------------------------------------------------------------------
 	// commands for playback
@@ -136,22 +152,12 @@
 		} ).send();
 	};
 
-	// skip forward in song by clicking on progress bar
-	function sendPlayContext( uri, offset ) {
-		sendPlayCommand( {
-			context_uri: uri,
-			offset: {
-				position: offset || 0
-			}
-		} );
-	}
-
 	// --------------------------------------------------------------------------------------
-	// DOM manip
+	// DOM updates
 	// --------------------------------------------------------------------------------------
 	function updateTrackPosition() {
 		// get the current time
-		let time = ( new Date() ).getTime();
+		let time = new Date().getTime();
 
 		// if global variable not set, set to time just acquired
 		if ( lastTrackPositionUpdate == 0 ) {
@@ -173,10 +179,10 @@
 		document.getElementById( "trackpositionfill" ).style.width = playheadLocation + "%";
 	}
 
-	function notificationPopup( title, subtitle, artwork ) {
+	function notificationPopup( title, subtitle, tempo ) {
 		document.getElementById( "title" ).innerText = title || "";
 		document.getElementById( "artist" ).innerText = subtitle || "";
-		// document.getElementById( "artwork" ).src = artwork || "";
+		document.getElementById( "tempo" ).innerText = tempo || "";
 		$( "#spotifyUpdate" ).addClass("visible");
 
 		clearTimeout( closetimer );
@@ -191,30 +197,38 @@
 		}
 		currentTrack = track;
 		trackURI = track.uri;
-		notificationPopup( trackName, artistName + " - " + albumName, albumArt );
+		notificationPopup( trackName, artistName + " - " + albumName, trackTempo );
+	}
+
+	function updateBackground( tempo, callback ) {
+		// divide the song time by the tempo to get how many times i call this function
+		bgOn = setTimeout( randomiseBackground, tempo );
 	}
 
 	function connect() {
-		// console.log( "Connecting with access token: " + accessToken );
-		console.log("Retrieving user info.");
-		getUserInformation( function ( userinfo ) {
-			if ( !userinfo ) {
+		console.log( "Retrieving user info." );
+		getUserInformation( function( userInfo ) {
+			// console.log( "getUserInfo ANON Start" )
+			if ( !userInfo ) {
 				accessToken = "";
 				return;
 			}
 
-			notificationPopup("Hello " + ( userinfo.display_name || userinfo.id ) + "!", "Make sure you\'re playing something in Spotify!");
-			console.log("Connecting to stream...")
-			pollCurrentlyPlaying( 2000 );
+			notificationPopup("Hello " + ( userInfo.display_name || userInfo.id ) + "!", "Make sure you\'re playing something in Spotify!" );
+			console.log( "Connecting to stream..." )
+			pollCurrentlyPlaying( 2500 );
+			// console.log( "getUserInfo ANON End" )
+			console.log( "Connected.");
 		} );
 	}
 
 	function initUI() {
-		document.getElementById( "trackposition" ).addEventListener("mousedown", function ( event ) {
+		document.getElementById( "trackposition" ).addEventListener( "mousedown", function ( event ) {
 			let time = event.offsetX * trackDuration / document.body.offsetWidth;
 			trackPosition = time;
+			console.log( trackPosition );
 			sendCommand( "PUT", "seek", "position_ms=" + Math.round( time ) );
-		});
+		} );
 
 		setInterval( updateTrackPosition, 1000 );
 	}
