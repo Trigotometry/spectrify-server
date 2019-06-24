@@ -19,11 +19,9 @@ And so, after much learning I have pivoted towards a web interface controller wh
 You can find *Spectrify* at; https://spectrify.herokuapp.com
 
 #### Spectrify landing page.
-![Spectrify Home](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-home2.png)
+![Spectrify Home](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-login.gif)
 #### Spectrify BG change examples & toasts.
-![Spectrify BPM BG #1](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-beat1.png)
-![Spectrify BPM BG #2](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-beat2.png)
-![Spectrify BPM BG #3](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-beat3.png)
+![Spectrify BPM BG #1](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-thriller.gif)
 
 ### **Potential Updates & Additions.**
 - LIFX integration.
