@@ -16,8 +16,7 @@ In the second phase I attempted to build out the visualisation using pre-crunche
 And so, after much learning I have pivoted towards a web interface controller which doesn't sync or react to the streaming song *yet*, but rather is constantly offering some great visuals, with options to tweak the colours etc to people's preferences. The data flow is still rather complex, offering me a great challenge and opportunity to further my developing skills.
 
 ### **Show Me Already**
-You can find *Spectrify* at, please note that it is currently still a WIP;
-https://spectrify.herokuapp.com
+You can find *Spectrify* at; https://spectrify.herokuapp.com
 
 #### Spectrify landing page.
 ![Spectrify Home](https://raw.githubusercontent.com/thomashexton/spectrify/master/screenshots/spectrify-home2.png)

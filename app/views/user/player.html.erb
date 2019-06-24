@@ -71,6 +71,26 @@
 		return request;
 	};
 
+	function getUserInformation( callback ) {
+		// console.log("getUserInformation Start")
+		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/me", function ( request ) {
+			// console.log("createAuthRequest ANON Start")
+			if ( request.status < 200 || request.status >= 400 ) {
+				callback( null );
+				return;
+			}
+
+			// console.log( "User info retrieved:", request.responseText );
+			let userInfo = JSON.parse( request.responseText );
+			// console.log("createAuthRequest ANON End")
+			callback( userInfo );
+		} ).send();
+		// console.log("getUserInformation End")
+	};
+
+	// --------------------------------------------------------------------------------------
+	// polling API for song changes
+	// --------------------------------------------------------------------------------------
 	// NFI how this works... binding a setTimeout?
 	function _pollCurrentlyPlaying( callback ) {
 		// get current song info
@@ -105,25 +125,8 @@
 		pollDebounce = setTimeout( _pollCurrentlyPlaying.bind( this, pollCurrentlyPlaying.bind( this ) ), delay || 500 );
 	};
 
-	function getUserInformation( callback ) {
-		// console.log("getUserInformation Start")
-		createAuthorizedRequest( "GET", "https://api.spotify.com/v1/me", function ( request ) {
-			// console.log("createAuthRequest ANON Start")
-			if ( request.status < 200 || request.status >= 400 ) {
-				callback( null );
-				return;
-			}
-
-			// console.log( "User info retrieved:", request.responseText );
-			let userInfo = JSON.parse( request.responseText );
-			// console.log("createAuthRequest ANON End")
-			callback( userInfo );
-		} ).send();
-		// console.log("getUserInformation End")
-	};
-
-	function getTrackTempo( track, callback ) {
-		createAuthorizedRequest( "GET", `https://api.spotify.com/v1/audio-features/${ track }`, function( request ) {
+	function getTrackTempo( trackID, callback ) {
+		createAuthorizedRequest( "GET", `https://api.spotify.com/v1/audio-features/${ trackID }`, function( request ) {
 			if ( request.status < 200 || request.status >= 400 ) {
 				return;
 			};
@@ -201,6 +204,9 @@
 	}
 
 	function updateBackground( tempo, callback ) {
+		if ( bgOn ) {
+			clearTimeout( bgOn );
+		}
 		// divide the song time by the tempo to get how many times i call this function
 		bgOn = setTimeout( randomiseBackground, tempo );
 	}
